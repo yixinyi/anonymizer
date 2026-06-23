@@ -5,9 +5,11 @@ const patterns = [
   { type: 'EMAIL', regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g },
   { type: 'PHONE', regex: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g },
   { type: 'SSN', regex: /\b\d{3}[-.]?\d{2}[-.]?\d{4}\b/g },
+  { type: 'DATE', regex: /\b(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:\.?)\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s*\d{2,4})?|\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)(?:,?\s*\d{2,4})?|\d{1,4}[-\/\.]\d{1,2}[-\/\.]\d{1,4})\b/gi },
+  { type: 'TIME', regex: /\b(?:[01]\d|2[0-3]):[0-5]\d(?:\s*(?:[ap](?:\.?)[m](?:\.?)))?(?:\s*(?:Z|UTC(?:[+-]\d{1,2}(?::?\d{2})?)?|[A-Za-z]{2,5}|[+-]\d{2}(?::?\d{2})?))?\b/gi },
   { type: 'IP', regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g },
-  { type: 'PERSON', regex: /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g },
-  { type: 'ADDRESS', regex: /\b\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Ave|Road|Rd|Lane|Ln|Boulevard|Blvd)\b/gi }
+  { type: 'ADDRESS', regex: /\b\d{1,6}\s+(?:[A-Za-z0-9#&\-]+\s?){1,6}(?:Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Boulevard|Blvd|Drive|Dr)(?:,\s*[A-Za-z][A-Za-z\-\s]{0,60})?(?:,\s*\d{5}(?:-\d{4})?)?\b/gi },
+//   { type: 'PERSON', regex: /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g } // Too broad, can match many false positives
 ];
 
 let currentMapping = {};
