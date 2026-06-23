@@ -20,10 +20,21 @@
         </section>
 
         <section class="panel">
-            <label class="muted">User-defined mapping (JSON or lines)</label>
-            <textarea id="userMapInput" placeholder='Example: John Doe => [PERSON_1]' style="height:80px"></textarea>
+            <label class="muted">User-defined mapping</label>
+            <table class="mapping-table" aria-label="User-defined mapping">
+                <thead>
+                    <tr>
+                        <th>original</th>
+                        <th>placeholder</th>
+                    </tr>
+                </thead>
+                <tbody id="userMapRows"></tbody>
+            </table>
             <div class="row">
                 <button id="applyUserMapBtn">Apply</button>
+                <button id="addUserMapRowBtn" class="secondary">Add row</button>
+                <button id="importUserMapBtn" class="secondary">Import JSON</button>
+                <input id="importUserMapInput" class="visually-hidden" type="file" accept=".json,application/json">
                 <button id="clearUserMapBtn" class="secondary">Clear</button>
             </div>
             <pre id="userMapDisplay"></pre>

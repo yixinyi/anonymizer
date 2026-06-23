@@ -21,11 +21,18 @@ body{
 h1{font-size:20px;margin:0 0 10px}
 p.lead{color:var(--muted);margin:6px 0 18px}
 .panel{background:#fff;border:1px solid var(--border);padding:16px;border-radius:var(--radius);margin-bottom:16px}
-textarea{width:100%;min-height:120px;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:13px}
-.row{display:flex;gap:8px;align-items:center}
-button{background:#111827;color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer}
+textarea,input{width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px}
+textarea{min-height:120px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{background:#111827;color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:13px;line-height:normal}
 button.secondary{background:#efefef;color:var(--accent)}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 pre{white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:6px;border:1px dashed var(--border);overflow:auto}
 .muted{color:var(--muted);font-size:13px}
 .flex-gap{display:flex;gap:8px}
+.mapping-table{width:100%;border-collapse:collapse;margin-top:6px;margin-bottom:8px}
+.mapping-table th{color:var(--muted);font-size:12px;font-weight:600;text-align:left;padding:0 6px 6px}
+.mapping-table td{padding:4px 6px}
+.mapping-table th:first-child,.mapping-table td:first-child{padding-left:0}
+.mapping-table th:last-child,.mapping-table td:last-child{padding-right:0}
 @media (max-width:640px){body{padding:16px}} 

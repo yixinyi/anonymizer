@@ -16,4 +16,16 @@ Files of interest:
 - `src/anon.js` — application logic (ES module)
 - `src/styles.css` — minimal styles
 
+User-defined mappings can be imported from JSON files shaped like:
+
+```json
+{
+  "Original text": "[PLACEHOLDER_1]",
+  "Another private value": "[CUSTOM_2]"
+}
+```
+
+The repository includes `my-mapping.json` as an example import file.
+Mapping JSON downloaded from the anonymized result can also be imported for reuse.
+
 You can extend `src/anon.js` programmatically since it exports the main actions.

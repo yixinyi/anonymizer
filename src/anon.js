@@ -20,42 +20,130 @@ function safeParseJSON(str){
   try{ return JSON.parse(str); } catch(e){ return null }
 }
 
-function parseUserMapInput(str){
-  str = (str || '').trim();
-  if(!str) return {};
-  const parsed = safeParseJSON(str);
-  if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+function looksLikePlaceholder(value){
+  return typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']');
+}
+
+function normalizeUserMap(data){
+  if(!data || typeof data !== 'object' || Array.isArray(data)) return null;
+
+  const entries = Object.entries(data);
+  const sourceEntries = entries.length && entries.every(([placeholder, original]) => looksLikePlaceholder(placeholder) && typeof original === 'string')
+    ? entries.map(([placeholder, original]) => [original, placeholder])
+    : entries;
+
+  const normalized = {};
+  for(const [original, placeholder] of sourceEntries){
+    const originalText = original.trim();
+    if(!originalText) continue;
+
+    if(placeholder === null || placeholder === undefined || placeholder === ''){
+      normalized[originalText] = null;
+    } else if(typeof placeholder === 'string'){
+      normalized[originalText] = placeholder.trim() || null;
+    } else {
+      return null;
+    }
+  }
+
+  return normalized;
+}
+
+function replaceUserMapRows(mapping){
+  const rows = document.getElementById('userMapRows');
+  rows.replaceChildren();
+
+  Object.entries(mapping).forEach(([original, placeholder]) => {
+    addUserMapRow(original, placeholder || '');
+  });
+
+  if(!Object.keys(mapping).length) addUserMapRow();
+}
+
+function addUserMapRow(original = '', placeholder = ''){
+  const rows = document.getElementById('userMapRows');
+  const tr = document.createElement('tr');
+  const originalCell = document.createElement('td');
+  const placeholderCell = document.createElement('td');
+  const originalInput = document.createElement('input');
+  const placeholderInput = document.createElement('input');
+
+  originalInput.type = 'text';
+  originalInput.className = 'user-map-original';
+  originalInput.placeholder = 'John Doe';
+  originalInput.setAttribute('aria-label', 'Original text');
+  originalInput.value = original;
+
+  placeholderInput.type = 'text';
+  placeholderInput.className = 'user-map-placeholder';
+  placeholderInput.placeholder = '[PERSON_1]';
+  placeholderInput.setAttribute('aria-label', 'Placeholder text');
+  placeholderInput.value = placeholder;
+
+  originalCell.appendChild(originalInput);
+  placeholderCell.appendChild(placeholderInput);
+  tr.appendChild(originalCell);
+  tr.appendChild(placeholderCell);
+  rows.appendChild(tr);
+}
+
+function getUserMapFromRows(){
   const out = {};
-  str.split(/\r?\n/).forEach(line => {
-    const s = line.trim(); if(!s) return;
-    const parts = s.split(/=>|->|=/).map(p=>p.trim());
-    const orig = parts[0]; const ph = parts[1] || null;
-    if(orig) out[orig] = ph;
+  document.querySelectorAll('#userMapRows tr').forEach(row => {
+    const original = row.querySelector('.user-map-original').value.trim();
+    const placeholder = row.querySelector('.user-map-placeholder').value.trim();
+    if(original) out[original] = placeholder || null;
   });
   return out;
 }
 
 function applyUserMap(){
-  const raw = document.getElementById('userMapInput').value;
-  const parsed = parseUserMapInput(raw);
+  const parsed = normalizeUserMap(getUserMapFromRows());
   if(!parsed || Object.keys(parsed).length === 0){ userDefinedMap = {}; renderUserMapDisplay(); return }
 
-  const keys = Object.keys(parsed);
-  let toUse = parsed;
-  if(keys.length && keys.every(k=>typeof k==='string' && k.startsWith('['))){
-    toUse = {}; keys.forEach(k=>{ const val = parsed[k]; if(typeof val === 'string') toUse[val] = k });
-  }
-
   userDefinedMap = {};
-  Object.keys(toUse).forEach(k => { userDefinedMap[k] = toUse[k] === undefined ? null : toUse[k]; });
+  Object.keys(parsed).forEach(k => { userDefinedMap[k] = parsed[k]; });
   renderUserMapDisplay();
 }
 
-function clearUserMap(){ userDefinedMap = {}; document.getElementById('userMapInput').value = ''; renderUserMapDisplay(); }
+function clearUserMap(){
+  userDefinedMap = {};
+  document.getElementById('userMapRows').replaceChildren();
+  addUserMapRow();
+  renderUserMapDisplay();
+}
 
 function renderUserMapDisplay(){
   const el = document.getElementById('userMapDisplay');
   el.textContent = Object.keys(userDefinedMap).length ? JSON.stringify(userDefinedMap, null, 2) : '';
+}
+
+function importUserMapFile(event){
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const parsed = safeParseJSON(String(reader.result || ''));
+    const mapping = normalizeUserMap(parsed);
+
+    if(!mapping || !Object.keys(mapping).length){
+      alert('Mapping JSON must be an object like {"Original text":"[PLACEHOLDER]"}');
+      input.value = '';
+      return;
+    }
+
+    userDefinedMap = mapping;
+    replaceUserMapRows(userDefinedMap);
+    renderUserMapDisplay();
+    input.value = '';
+  };
+  reader.onerror = () => {
+    alert('Could not read the mapping file.');
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function anonymizeText(){
@@ -105,16 +193,20 @@ function deanonymizeText(){
 
 function init(){
   document.getElementById('applyUserMapBtn').addEventListener('click', applyUserMap);
+  document.getElementById('addUserMapRowBtn').addEventListener('click', () => addUserMapRow());
+  document.getElementById('importUserMapBtn').addEventListener('click', () => document.getElementById('importUserMapInput').click());
+  document.getElementById('importUserMapInput').addEventListener('change', importUserMapFile);
   document.getElementById('clearUserMapBtn').addEventListener('click', clearUserMap);
   document.getElementById('anonymizeBtn').addEventListener('click', anonymizeText);
   document.getElementById('copyAnonymizedBtn').addEventListener('click', copyAnonymized);
   document.getElementById('copyMappingBtn').addEventListener('click', copyMapping);
   document.getElementById('downloadMappingBtn').addEventListener('click', downloadMapping);
   document.getElementById('restoreBtn').addEventListener('click', deanonymizeText);
+  addUserMapRow();
   renderUserMapDisplay();
 }
 
-const Anonymizer = { init, anonymizeText, deanonymizeText, applyUserMap, clearUserMap };
+const Anonymizer = { init, anonymizeText, deanonymizeText, applyUserMap, clearUserMap, importUserMapFile };
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 
