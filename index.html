@@ -1,211 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Local Reversible Text Anonymizer</title>
-<style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 20px; }
-    textarea { width: 100%; height: 150px; margin: 10px 0; }
-    button { padding: 10px 16px; margin: 5px; font-size: 14px; }
-    pre { background: #f4f4f4; padding: 15px; border-radius: 6px; overflow-x: auto; }
-    .section { margin: 25px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Text Anonymizer</title>
+    <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
-<h1>Local Reversible Text Anonymizer</h1>
-<p><strong>All processing happens in your browser</strong> — nothing is sent anywhere.</p>
+    <main class="container">
+        <h1>Text Anonymizer</h1>
+        <p class="lead">All processing happens in your browser — nothing is sent anywhere.</p>
 
-<div class="section">
-    <h2>1. Original Text</h2>
-    <textarea id="original" placeholder="Paste your sensitive text here..."></textarea>
-    <button onclick="anonymizeText()">Anonymize</button>
-</div>
+        <section class="panel">
+            <label class="muted">Original</label>
+            <textarea id="original" placeholder="Paste text to anonymize"></textarea>
+            <div class="flex-gap">
+                <button id="anonymizeBtn">Anonymize</button>
+            </div>
+        </section>
 
-<div class="section">
-    <h2>1.b User-defined Mapping</h2>
-    <p>Provide mappings for specific strings you want replaced. Accepts JSON (e.g. {"John Doe": "[PERSON_1]"}) or simple lines like <code>John Doe =&gt; [PERSON_1]</code>. If you omit the placeholder, one will be generated.</p>
-    <textarea id="userMapInput" placeholder='Paste JSON or lines here, e.g. "John Doe =&gt; [PERSON_1]"' style="height:100px"></textarea>
-    <div>
-        <button onclick="applyUserMap()">Apply User Map</button>
-        <button onclick="clearUserMap()">Clear User Map</button>
-    </div>
-    <pre id="userMapDisplay" style="height:80px; overflow:auto; background:#fafafa; padding:10px; border:1px dashed #ddd;"></pre>
-</div>
+        <section class="panel">
+            <label class="muted">User-defined mapping (JSON or lines)</label>
+            <textarea id="userMapInput" placeholder='Example: John Doe => [PERSON_1]' style="height:80px"></textarea>
+            <div class="row">
+                <button id="applyUserMapBtn">Apply</button>
+                <button id="clearUserMapBtn" class="secondary">Clear</button>
+            </div>
+            <pre id="userMapDisplay"></pre>
+        </section>
 
-<div class="section" id="resultSection" style="display:none;">
-    <h2>2. Anonymized Text</h2>
-    <textarea id="anonymized" readonly></textarea>
-    <button onclick="copyToClipboard('anonymized')">Copy Anonymized</button>
-    
-    <h2>3. Mapping (save this!)</h2>
-    <pre id="mappingDisplay"></pre>
-    <button onclick="copyMapping()">Copy Mapping as JSON</button>
-</div>
+        <section class="panel" id="resultSection" style="display:none">
+            <label class="muted">Anonymized</label>
+            <textarea id="anonymized" readonly></textarea>
+            <div class="row" style="margin-top:8px">
+                <button id="copyAnonymizedBtn">Copy</button>
+            </div>
 
-<div class="section">
-    <h2>4. Deanonymize</h2>
-    <textarea id="toRestore" placeholder="Paste anonymized text here to restore..."></textarea>
-    <textarea id="mappingInput" placeholder='Paste mapping JSON here (e.g. {"[PERSON_1]": "John Doe", ...})' style="height:120px;"></textarea>
-    <button onclick="deanonymizeText()">Restore Original</button>
-    <pre id="restored"></pre>
-</div>
+            <label class="muted" style="margin-top:10px">Mapping (save this)</label>
+            <pre id="mappingDisplay"></pre>
+            <div class="row" style="margin-top:8px">
+                <button id="copyMappingBtn">Copy JSON</button>
+                <button id="downloadMappingBtn" class="secondary">Download</button>
+            </div>
+        </section>
 
-<script>
-// Common regex patterns for PII
-const patterns = [
-    { type: "EMAIL", regex: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g },
-    { type: "PHONE", regex: /\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g },
-    { type: "SSN",   regex: /\b\d{3}[-.]?\d{2}[-.]?\d{4}\b/g },
-    { type: "IP",    regex: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g },
-    { type: "PERSON", regex: /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+\b/g }, // Very basic name detection
-    { type: "ADDRESS", regex: /\b\d+\s+[A-Za-z0-9\s,]+(?:Street|St|Ave|Road|Rd|Lane|Ln|Boulevard|Blvd)\b/gi }
-];
+        <section class="panel">
+            <label class="muted">Deanonymize</label>
+            <textarea id="toRestore" placeholder="Paste anonymized text"></textarea>
+            <textarea id="mappingInput" placeholder='Paste mapping JSON' style="height:80px;margin-top:8px"></textarea>
+            <div class="row" style="margin-top:8px">
+                <button id="restoreBtn">Restore</button>
+            </div>
+            <pre id="restored"></pre>
+        </section>
+    </main>
 
-let currentMapping = {};
-let userDefinedMap = {}; // original -> placeholder (placeholder may be null to auto-generate)
-let userMapCounter = 0;
-
-function parseUserMapInput(str) {
-    str = (str || '').trim();
-    if (!str) return {};
-    // Try JSON first
-    try {
-        const parsed = JSON.parse(str);
-        // Expecting object of original -> placeholder or original -> null
-        return parsed;
-    } catch (e) {
-        // Fallback: parse lines like "Original => [PLACEHOLDER]" or "Original"
-        const out = {};
-        str.split(/\r?\n/).forEach(line => {
-            const s = line.trim();
-            if (!s) return;
-            // split by =>, ->, or =
-            const parts = s.split(/=>|->|=/).map(p => p.trim());
-            const orig = parts[0];
-            const ph = parts[1] || null;
-            if (orig) out[orig] = ph;
-        });
-        return out;
-    }
-}
-
-function applyUserMap() {
-    const raw = document.getElementById('userMapInput').value;
-    try {
-        const parsed = parseUserMapInput(raw);
-        // If user pasted a mapping in the form {"[PLACEHOLDER]": "Original"}, invert it
-        const keys = Object.keys(parsed);
-        let toUse = parsed;
-        if (keys.length && keys.every(k => typeof k === 'string' && k.startsWith('['))) {
-            toUse = {};
-            keys.forEach(k => {
-                const val = parsed[k];
-                if (typeof val === 'string') toUse[val] = k; // original -> placeholder
-            });
-        }
-        userDefinedMap = {};
-        Object.keys(toUse).forEach(k => {
-            userDefinedMap[k] = toUse[k] === undefined ? null : toUse[k];
-        });
-        document.getElementById('userMapDisplay').textContent = JSON.stringify(userDefinedMap, null, 2);
-        alert('User map applied');
-    } catch (e) {
-        alert('Failed to parse user map');
-    }
-}
-
-function clearUserMap() {
-    userDefinedMap = {};
-    document.getElementById('userMapDisplay').textContent = '';
-    document.getElementById('userMapInput').value = '';
-}
-
-function anonymizeText() {
-    const text = document.getElementById('original').value.trim();
-    if (!text) return alert("Please enter some text");
-    
-    let anonymized = text;
-    currentMapping = {};
-    let counter = {};
-    // apply user-defined mappings first (exact string replacements)
-    if (userDefinedMap && Object.keys(userDefinedMap).length) {
-        // sort originals by length desc to avoid partial replacements
-        Object.keys(userDefinedMap)
-            .sort((a, b) => b.length - a.length)
-            .forEach(orig => {
-                let ph = userDefinedMap[orig];
-                if (!ph) {
-                    userMapCounter++;
-                    ph = `[CUSTOM_${userMapCounter}]`;
-                }
-                // ensure placeholder uniqueness
-                let uniquePh = ph;
-                let suffix = 1;
-                while (currentMapping[uniquePh]) {
-                    uniquePh = ph.replace(/\]$/, `_${suffix}]`);
-                    suffix++;
-                }
-                currentMapping[uniquePh] = orig;
-                // exact replace all occurrences
-                anonymized = anonymized.replaceAll(orig, uniquePh);
-            });
-    }
-    
-    patterns.forEach(({type, regex}) => {
-        counter[type] = 0;
-        anonymized = anonymized.replace(regex, (match) => {
-            counter[type]++;
-            const placeholder = `[${type}_${counter[type]}]`;
-            currentMapping[placeholder] = match;
-            return placeholder;
-        });
-    });
-    
-    // Sort mapping for nicer display
-    const sortedMapping = Object.fromEntries(
-        Object.entries(currentMapping).sort(([a], [b]) => a.localeCompare(b))
-    );
-    
-    document.getElementById('anonymized').value = anonymized;
-    document.getElementById('mappingDisplay').textContent = JSON.stringify(sortedMapping, null, 2);
-    document.getElementById('resultSection').style.display = 'block';
-}
-
-function copyToClipboard(id) {
-    const el = document.getElementById(id);
-    el.select();
-    document.execCommand('copy');
-    alert("Copied to clipboard!");
-}
-
-function copyMapping() {
-    const data = JSON.stringify(currentMapping, null, 2);
-    navigator.clipboard.writeText(data).then(() => alert("Mapping copied as JSON!"));
-}
-
-function deanonymizeText() {
-    let text = document.getElementById('toRestore').value;
-    let mappingStr = document.getElementById('mappingInput').value.trim();
-    
-    if (!mappingStr) {
-        alert("Please paste the mapping JSON");
-        return;
-    }
-    
-    try {
-        const mapping = JSON.parse(mappingStr);
-        // Replace from longest placeholder first
-        Object.keys(mapping)
-            .sort((a, b) => b.length - a.length)
-            .forEach(ph => {
-                text = text.replaceAll(ph, mapping[ph]);
-            });
-        
-        document.getElementById('restored').textContent = text;
-    } catch (e) {
-        alert("Invalid JSON mapping. Please check the format.");
-    }
-}
-</script>
+    <script type="module" src="src/anon.js"></script>
 </body>
 </html>
