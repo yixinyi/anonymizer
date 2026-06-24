@@ -201,9 +201,34 @@ function downloadMapping(){ const data = JSON.stringify(currentMapping, null, 2)
 
 function deanonymizeText(){
   let text = document.getElementById('toRestore').value || '';
-  let mappingStr = document.getElementById('mappingInput').value.trim();
-  if(!mappingStr) return alert('Please paste the mapping JSON');
-  const mapping = safeParseJSON(mappingStr); if(!mapping) return alert('Invalid JSON mapping.');
+  let mapping = null;
+  const mappingInputEl = document.getElementById('mappingInput');
+
+  if(mappingInputEl){
+    const mappingStr = mappingInputEl.value.trim();
+    if(mappingStr){
+      mapping = safeParseJSON(mappingStr);
+      if(!mapping) return alert('Invalid JSON mapping.');
+    }
+  }
+
+  if(!mapping || !Object.keys(mapping).length){
+    if(currentMapping && Object.keys(currentMapping).length){
+      mapping = currentMapping;
+    } else {
+      // try to read the mapping shown in the mapping display area
+      const mappingDisplayEl = document.getElementById('mappingDisplay');
+      if(mappingDisplayEl && mappingDisplayEl.textContent && mappingDisplayEl.textContent.trim()){
+        const parsed = safeParseJSON(mappingDisplayEl.textContent.trim());
+        if(parsed && Object.keys(parsed).length) mapping = parsed;
+      }
+
+      if(!mapping || !Object.keys(mapping).length){
+        return alert('No mapping available. Anonymize text first or provide mapping JSON.');
+      }
+    }
+  }
+
   Object.keys(mapping).sort((a,b)=>b.length-a.length).forEach(ph=>{ text = text.split(ph).join(mapping[ph]) });
   document.getElementById('restored').textContent = text;
 }
@@ -217,7 +242,6 @@ function init(){
   document.getElementById('clearUserMapBtn').addEventListener('click', clearUserMap);
   document.getElementById('anonymizeBtn').addEventListener('click', anonymizeText);
   document.getElementById('copyAnonymizedBtn').addEventListener('click', copyAnonymized);
-  document.getElementById('copyMappingBtn').addEventListener('click', copyMapping);
   document.getElementById('downloadMappingBtn').addEventListener('click', downloadMapping);
   document.getElementById('restoreBtn').addEventListener('click', deanonymizeText);
   addUserMapRow();
