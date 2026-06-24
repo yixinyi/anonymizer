@@ -197,6 +197,8 @@ function copyAnonymized(){ const text = document.getElementById('anonymized').va
 
 function copyMapping(){ const data = JSON.stringify(currentMapping, null, 2); if(!data || data==='{}') return alert('No mapping to copy'); navigator.clipboard.writeText(data).then(()=>{}) }
 
+function copyRestored(){ const text = document.getElementById('restored').textContent; if(!text) return alert('Nothing to copy'); navigator.clipboard.writeText(text).then(()=>{}) }
+
 function downloadMapping(){ const data = JSON.stringify(currentMapping, null, 2); if(!data || data==='{}') return alert('No mapping to download'); const blob = new Blob([data], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'mapping.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
 
 function deanonymizeText(){
@@ -231,6 +233,10 @@ function deanonymizeText(){
 
   Object.keys(mapping).sort((a,b)=>b.length-a.length).forEach(ph=>{ text = text.split(ph).join(mapping[ph]) });
   document.getElementById('restored').textContent = text;
+  const copyBtn = document.getElementById('copyRestoredBtn');
+  if(copyBtn){
+    if(text && String(text).trim()) copyBtn.style.display = 'inline-block'; else copyBtn.style.display = 'none';
+  }
 }
 
 function init(){
@@ -244,6 +250,8 @@ function init(){
   document.getElementById('copyAnonymizedBtn').addEventListener('click', copyAnonymized);
   document.getElementById('downloadMappingBtn').addEventListener('click', downloadMapping);
   document.getElementById('restoreBtn').addEventListener('click', deanonymizeText);
+  const copyRestoredBtn = document.getElementById('copyRestoredBtn');
+  if(copyRestoredBtn) copyRestoredBtn.addEventListener('click', copyRestored);
   addUserMapRow();
   renderUserMapDisplay();
 }
