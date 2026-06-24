@@ -115,7 +115,24 @@ function clearUserMap(){
 
 function renderUserMapDisplay(){
   const el = document.getElementById('userMapDisplay');
-  el.textContent = Object.keys(userDefinedMap).length ? JSON.stringify(userDefinedMap, null, 2) : '';
+  const has = Object.keys(userDefinedMap).length;
+  el.textContent = has ? JSON.stringify(userDefinedMap, null, 2) : '';
+  const btn = document.getElementById('exportUserMapBtn');
+  if(btn) btn.style.display = has ? 'inline-block' : 'none';
+}
+
+function exportUserMap(){
+  const data = JSON.stringify(userDefinedMap, null, 2);
+  if(!data || data === '{}' || Object.keys(userDefinedMap).length === 0) return alert('No user-defined mapping to export');
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'user-mapping.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function importUserMapFile(event){
@@ -193,6 +210,7 @@ function deanonymizeText(){
 
 function init(){
   document.getElementById('applyUserMapBtn').addEventListener('click', applyUserMap);
+  document.getElementById('exportUserMapBtn').addEventListener('click', exportUserMap);
   document.getElementById('addUserMapRowBtn').addEventListener('click', () => addUserMapRow());
   document.getElementById('importUserMapBtn').addEventListener('click', () => document.getElementById('importUserMapInput').click());
   document.getElementById('importUserMapInput').addEventListener('change', importUserMapFile);
