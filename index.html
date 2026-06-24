@@ -16,6 +16,7 @@
             <textarea id="original" placeholder="Paste text to anonymize"></textarea>
             <div class="flex-gap">
                 <button id="anonymizeBtn">Anonymize</button>
+                <button id="clearOriginalBtn" class="secondary">Clear</button>
             </div>
         </section>
 
@@ -62,12 +63,14 @@
             <textarea id="toRestore" placeholder="Paste anonymized text"></textarea>
             <div class="row" style="margin-top:8px">
                 <button id="restoreBtn">Restore</button>
+                <button id="clearRestoreBtn" class="secondary">Clear</button>
             </div>
             <pre id="restored"></pre>
             <div class="row" style="margin-top:8px">
                 <button id="copyRestoredBtn" style="display:none">Copy</button>
             </div>
         </section>
+        </br>
     </main>
 
     <script type="module" src="src/anon.js"></script>

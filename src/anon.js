@@ -239,6 +239,20 @@ function deanonymizeText(){
   }
 }
 
+function clearOriginal(){
+  const el = document.getElementById('original');
+  if(el) el.value = '';
+}
+
+function clearRestore(){
+  const el = document.getElementById('toRestore');
+  if(el) el.value = '';
+  const restoredEl = document.getElementById('restored');
+  if(restoredEl) restoredEl.textContent = '';
+  const copyBtn = document.getElementById('copyRestoredBtn');
+  if(copyBtn) copyBtn.style.display = 'none';
+}
+
 function init(){
   document.getElementById('applyUserMapBtn').addEventListener('click', applyUserMap);
   document.getElementById('exportUserMapBtn').addEventListener('click', exportUserMap);
@@ -247,9 +261,11 @@ function init(){
   document.getElementById('importUserMapInput').addEventListener('change', importUserMapFile);
   document.getElementById('clearUserMapBtn').addEventListener('click', clearUserMap);
   document.getElementById('anonymizeBtn').addEventListener('click', anonymizeText);
+  document.getElementById('clearOriginalBtn').addEventListener('click', clearOriginal);
   document.getElementById('copyAnonymizedBtn').addEventListener('click', copyAnonymized);
   document.getElementById('downloadMappingBtn').addEventListener('click', downloadMapping);
   document.getElementById('restoreBtn').addEventListener('click', deanonymizeText);
+  document.getElementById('clearRestoreBtn').addEventListener('click', clearRestore);
   const copyRestoredBtn = document.getElementById('copyRestoredBtn');
   if(copyRestoredBtn) copyRestoredBtn.addEventListener('click', copyRestored);
   addUserMapRow();
