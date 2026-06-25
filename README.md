@@ -1,6 +1,8 @@
 # Local Reversible Text Anonymizer
 
-Minimal client-side text anonymizer and de-anonymizer. Supports custom mappings and basic regex-based PII detection. All processing stays in your browser.
+- Minimal client-side text anonymizer and de-anonymizer.
+- Supports custom mappings and basic regex-based PII detection. 
+- All processing stays in your browser.
 
 User-defined mappings can be imported from JSON files shaped like:
 
