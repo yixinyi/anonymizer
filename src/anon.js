@@ -24,6 +24,97 @@ function looksLikePlaceholder(value){
   return typeof value === 'string' && value.trim().startsWith('[') && value.trim().endsWith(']');
 }
 
+function escapeHTML(value){
+  return String(value).replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
+}
+
+function makePlaceholderName(placeholder, existingMappings = {}, usedPlaceholders = []){
+  let candidate = placeholder;
+  let suffix = 1;
+  const occupied = new Set(Object.keys(existingMappings || {}));
+  (usedPlaceholders || []).forEach(item => occupied.add(item));
+
+  while(occupied.has(candidate)){
+    candidate = candidate.replace(/\](?=\s*$)/, `_${suffix}]`);
+    suffix++;
+  }
+
+  return candidate;
+}
+
+export function resolvePlaceholderForText(placeholder, text, { mode = 'use-as-is' } = {}){
+  const value = typeof placeholder === 'string' ? placeholder.trim() : '';
+  if(!value) return value;
+
+  const sourceText = typeof text === 'string' ? text : '';
+  if(!sourceText.includes(value)) return value;
+  return value;
+}
+
+export function collectPlaceholderCollisionValues(placeholder, text, existingMappings = {}, usedPlaceholders = []){
+  const collisions = new Set();
+  const sourceText = typeof text === 'string' ? text : '';
+
+  if(typeof placeholder === 'string' && placeholder.trim()) collisions.add(placeholder.trim());
+
+  const textMatches = sourceText.match(/\[[^\]\n]+\]/g) || [];
+  textMatches.forEach(candidate => collisions.add(candidate));
+
+  Object.keys(existingMappings || {}).forEach(candidate => {
+    if(typeof candidate === 'string' && candidate.trim()) collisions.add(candidate.trim());
+  });
+  (usedPlaceholders || []).forEach(candidate => {
+    if(typeof candidate === 'string' && candidate.trim()) collisions.add(candidate.trim());
+  });
+
+  return Array.from(collisions).sort((a,b) => a.localeCompare(b));
+}
+
+function showPlaceholderCollisionDialog({ placeholder, original, text, existingMappings = {}, usedPlaceholders = [] }){
+  return new Promise(resolve => {
+    if(typeof document === 'undefined'){
+      resolve('use-as-is');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'modal-dialog';
+
+    const message = document.createElement('p');
+    message.textContent = 'Placeholder collisions detected';
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+
+    const useAsIsButton = document.createElement('button');
+    useAsIsButton.type = 'button';
+    useAsIsButton.textContent = 'Use as-is';
+    useAsIsButton.addEventListener('click', () => {
+      overlay.remove();
+      resolve('use-as-is');
+    });
+
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'secondary';
+    cancelButton.textContent = 'Cancel';
+    cancelButton.addEventListener('click', () => {
+      overlay.remove();
+      resolve('cancel');
+    });
+
+    actions.appendChild(useAsIsButton);
+    actions.appendChild(cancelButton);
+    dialog.appendChild(message);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+  });
+}
+
 function normalizeUserMap(data){
   if(!data || typeof data !== 'object' || Array.isArray(data)) return null;
 
@@ -163,18 +254,35 @@ function importUserMapFile(event){
   reader.readAsText(file);
 }
 
-function anonymizeText(){
+async function anonymizeText(){
   const text = document.getElementById('original').value;
   if(!text || !text.trim()) return alert('Please enter some text');
-  let anonymized = text; currentMapping = {}; const counter = {};
+  let anonymized = text; currentMapping = {}; const counter = {}; const usedPlaceholders = new Set();
 
   if(userDefinedMap && Object.keys(userDefinedMap).length){
-    Object.keys(userDefinedMap).sort((a,b)=>b.length-a.length).forEach(orig=>{
-      let ph = userDefinedMap[orig]; if(!ph){ userMapCounter++; ph = `[CUSTOM_${userMapCounter}]` }
-      let uniquePh = ph; let suffix = 1;
-      while(currentMapping[uniquePh]){ uniquePh = ph.replace(/\]$/, `_${suffix}]`); suffix++; }
-      currentMapping[uniquePh] = orig; anonymized = anonymized.split(orig).join(uniquePh);
-    });
+    for(const orig of Object.keys(userDefinedMap).sort((a,b)=>b.length-a.length)){
+      let ph = userDefinedMap[orig];
+      if(!ph){ userMapCounter++; ph = `[CUSTOM_${userMapCounter}]`; }
+
+      const hasCollision = text.includes(ph);
+      let resolvedPlaceholder = ph;
+      if(hasCollision){
+        const choice = await showPlaceholderCollisionDialog({
+          placeholder: ph,
+          original: orig,
+          text,
+          existingMappings: currentMapping,
+          usedPlaceholders: Array.from(usedPlaceholders)
+        });
+        if(choice === 'cancel') return;
+        resolvedPlaceholder = resolvePlaceholderForText(ph, text);
+      }
+
+      const uniquePh = makePlaceholderName(resolvedPlaceholder, currentMapping, usedPlaceholders);
+      currentMapping[uniquePh] = orig;
+      usedPlaceholders.add(uniquePh);
+      anonymized = anonymized.split(orig).join(uniquePh);
+    }
   }
 
   patterns.forEach(({type,regex})=>{
@@ -182,8 +290,10 @@ function anonymizeText(){
     anonymized = anonymized.replace(regex, (match)=>{
       counter[type]++;
       const placeholder = `[${type}_${counter[type]}]`;
-      if(!currentMapping[placeholder]) currentMapping[placeholder] = match;
-      return placeholder;
+      const uniquePlaceholder = makePlaceholderName(placeholder, currentMapping, usedPlaceholders);
+      if(!currentMapping[uniquePlaceholder]) currentMapping[uniquePlaceholder] = match;
+      usedPlaceholders.add(uniquePlaceholder);
+      return uniquePlaceholder;
     });
   });
 
@@ -274,6 +384,8 @@ function init(){
 
 const Anonymizer = { init, anonymizeText, deanonymizeText, applyUserMap, clearUserMap, importUserMapFile };
 
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+}
 
 export default Anonymizer;

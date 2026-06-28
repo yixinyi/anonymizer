@@ -35,4 +35,12 @@ pre{white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:6px;borde
 .mapping-table td{padding:4px 6px}
 .mapping-table th:first-child,.mapping-table td:first-child{padding-left:0}
 .mapping-table th:last-child,.mapping-table td:last-child{padding-right:0}
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.modal-dialog{background:#fff;border:1px solid var(--border);border-radius:12px;max-width:480px;width:100%;padding:20px;box-shadow:0 20px 40px rgba(15,23,42,0.16)}
+.modal-dialog h2{margin:0 0 8px;font-size:18px}
+.modal-dialog p{margin:6px 0;color:var(--accent)}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.modal-actions button{min-width:110px}
+.collision-list{margin:8px 0 0 18px;padding:0}
+.collision-list li{margin:2px 0}
 @media (max-width:640px){body{padding:16px}} 
