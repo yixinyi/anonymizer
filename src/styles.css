@@ -43,4 +43,5 @@ pre{white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:6px;borde
 .modal-actions button{min-width:110px}
 .collision-list{margin:8px 0 0 18px;padding:0}
 .collision-list li{margin:2px 0}
+.notice{margin-top:10px;padding:10px;border-radius:6px;background:#fff4e5;border:1px solid #ffd8a8;color:#92400e;}
 @media (max-width:640px){body{padding:16px}} 

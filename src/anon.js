@@ -35,7 +35,11 @@ function makePlaceholderName(placeholder, existingMappings = {}, usedPlaceholder
   (usedPlaceholders || []).forEach(item => occupied.add(item));
 
   while(occupied.has(candidate)){
-    candidate = candidate.replace(/\](?=\s*$)/, `_${suffix}]`);
+    if(candidate.endsWith(']')){
+      candidate = candidate.replace(/\](?=\s*$)/, `_${suffix}]`);
+    } else {
+      candidate = `${candidate}_${suffix}`;
+    }
     suffix++;
   }
 
@@ -140,6 +144,45 @@ function normalizeUserMap(data){
   return normalized;
 }
 
+function setUserMapNotice(message){
+  const notice = document.getElementById('userMapNotice');
+  if(!notice) return;
+  if(message){
+    notice.textContent = message;
+    notice.style.display = 'block';
+  } else {
+    notice.textContent = '';
+    notice.style.display = 'none';
+  }
+}
+
+function fixDuplicateUserPlaceholders(mapping){
+  const usedPlaceholders = new Set();
+  const fixed = {};
+  const collisions = [];
+
+  Object.entries(mapping).forEach(([original, placeholder]) => {
+    if(placeholder === null || placeholder === undefined || !placeholder.trim()){
+      fixed[original] = placeholder;
+      return;
+    }
+
+    const trimmed = placeholder.trim();
+    if(!usedPlaceholders.has(trimmed)){
+      usedPlaceholders.add(trimmed);
+      fixed[original] = trimmed;
+      return;
+    }
+
+    const unique = makePlaceholderName(trimmed, {}, Array.from(usedPlaceholders));
+    fixed[original] = unique;
+    usedPlaceholders.add(unique);
+    collisions.push({ original, from: trimmed, to: unique });
+  });
+
+  return { fixed, collisions };
+}
+
 function replaceUserMapRows(mapping){
   const rows = document.getElementById('userMapRows');
   rows.replaceChildren();
@@ -190,10 +233,19 @@ function getUserMapFromRows(){
 
 function applyUserMap(){
   const parsed = normalizeUserMap(getUserMapFromRows());
+  setUserMapNotice('');
   if(!parsed || Object.keys(parsed).length === 0){ userDefinedMap = {}; renderUserMapDisplay(); return }
 
-  userDefinedMap = {};
-  Object.keys(parsed).forEach(k => { userDefinedMap[k] = parsed[k]; });
+  const { fixed, collisions } = fixDuplicateUserPlaceholders(parsed);
+  if(collisions.length){
+    const collisionText = collisions
+      .map(item => `${item.original}: ${item.from} → ${item.to}`)
+      .join('; ');
+    setUserMapNotice(`Duplicate placeholders detected and auto-fixed: ${collisionText}`);
+  }
+
+  userDefinedMap = fixed;
+  replaceUserMapRows(userDefinedMap);
   renderUserMapDisplay();
 }
 
@@ -201,6 +253,7 @@ function clearUserMap(){
   userDefinedMap = {};
   document.getElementById('userMapRows').replaceChildren();
   addUserMapRow();
+  setUserMapNotice('');
   renderUserMapDisplay();
 }
 
@@ -243,6 +296,7 @@ function importUserMapFile(event){
     }
 
     userDefinedMap = mapping;
+    setUserMapNotice('');
     replaceUserMapRows(userDefinedMap);
     renderUserMapDisplay();
     input.value = '';
