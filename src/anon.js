@@ -194,13 +194,39 @@ function replaceUserMapRows(mapping){
   if(!Object.keys(mapping).length) addUserMapRow();
 }
 
+function syncUserMapFromRows(){
+  const parsed = normalizeUserMap(getUserMapFromRows());
+  setUserMapNotice('');
+
+  if(!parsed || Object.keys(parsed).length === 0){
+    userDefinedMap = {};
+    replaceUserMapRows(userDefinedMap);
+    renderUserMapDisplay();
+    return;
+  }
+
+  const { fixed, collisions } = fixDuplicateUserPlaceholders(parsed);
+  if(collisions.length){
+    const collisionText = collisions
+      .map(item => `${item.original}: ${item.from} → ${item.to}`)
+      .join('; ');
+    setUserMapNotice(`Duplicate placeholders detected and auto-fixed: ${collisionText}`);
+  }
+
+  userDefinedMap = fixed;
+  replaceUserMapRows(userDefinedMap);
+  renderUserMapDisplay();
+}
+
 function addUserMapRow(original = '', placeholder = ''){
   const rows = document.getElementById('userMapRows');
   const tr = document.createElement('tr');
   const originalCell = document.createElement('td');
   const placeholderCell = document.createElement('td');
+  const actionsCell = document.createElement('td');
   const originalInput = document.createElement('input');
   const placeholderInput = document.createElement('input');
+  const deleteButton = document.createElement('button');
 
   originalInput.type = 'text';
   originalInput.className = 'user-map-original';
@@ -214,10 +240,23 @@ function addUserMapRow(original = '', placeholder = ''){
   placeholderInput.setAttribute('aria-label', 'Placeholder text');
   placeholderInput.value = placeholder;
 
+  deleteButton.type = 'button';
+  deleteButton.className = 'icon-button delete-user-map-row';
+  deleteButton.title = 'Delete row';
+  deleteButton.setAttribute('aria-label', 'Delete mapping row');
+  deleteButton.textContent = '×';
+  deleteButton.addEventListener('click', () => {
+    tr.remove();
+    syncUserMapFromRows();
+  });
+
   originalCell.appendChild(originalInput);
   placeholderCell.appendChild(placeholderInput);
+  actionsCell.appendChild(deleteButton);
+  actionsCell.className = 'user-map-actions';
   tr.appendChild(originalCell);
   tr.appendChild(placeholderCell);
+  tr.appendChild(actionsCell);
   rows.appendChild(tr);
 }
 
@@ -232,21 +271,7 @@ function getUserMapFromRows(){
 }
 
 function applyUserMap(){
-  const parsed = normalizeUserMap(getUserMapFromRows());
-  setUserMapNotice('');
-  if(!parsed || Object.keys(parsed).length === 0){ userDefinedMap = {}; renderUserMapDisplay(); return }
-
-  const { fixed, collisions } = fixDuplicateUserPlaceholders(parsed);
-  if(collisions.length){
-    const collisionText = collisions
-      .map(item => `${item.original}: ${item.from} → ${item.to}`)
-      .join('; ');
-    setUserMapNotice(`Duplicate placeholders detected and auto-fixed: ${collisionText}`);
-  }
-
-  userDefinedMap = fixed;
-  replaceUserMapRows(userDefinedMap);
-  renderUserMapDisplay();
+  syncUserMapFromRows();
 }
 
 function clearUserMap(){

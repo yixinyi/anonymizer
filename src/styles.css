@@ -35,6 +35,10 @@ pre{white-space:pre-wrap;background:#fafafa;padding:10px;border-radius:6px;borde
 .mapping-table td{padding:4px 6px}
 .mapping-table th:first-child,.mapping-table td:first-child{padding-left:0}
 .mapping-table th:last-child,.mapping-table td:last-child{padding-right:0}
+.mapping-actions-header{width:44px}
+.user-map-actions{width:44px;text-align:center}
+.icon-button{background:#f3f4f6;color:var(--accent);border:1px solid var(--border);padding:4px 8px;border-radius:999px;cursor:pointer;line-height:1;font-size:16px}
+.icon-button:hover{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
 .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,0.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
 .modal-dialog{background:#fff;border:1px solid var(--border);border-radius:12px;max-width:480px;width:100%;padding:20px;box-shadow:0 20px 40px rgba(15,23,42,0.16)}
 .modal-dialog h2{margin:0 0 8px;font-size:18px}
